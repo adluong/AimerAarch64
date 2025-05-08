@@ -7,345 +7,326 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// inverse Mersenne S-box with e1 = 17
-// (2 ^ 17 - 1) ^ (-1) mod (2 ^ 192 - 1)
-// = 0xad6b56b5ab5ad5ad6ad6b56b5ab5ad5ad6ad6b56b5ab5ad5
-// ad6b56b5ab5ad5 ad6 ad6b56b5ab5ad5 ad6 ad6b56b5ab5ad5
-void GF_exp_invmer_e_1(GF out, const GF in)
+void GF_exp_invmer_e_1_2(GF out1, GF out2, const GF in1, const GF in2)
 {
-  size_t i;
-  GF t1 = {0,}, t2 = {0,};
-  GF table_5 = {0,}, table_6 = {0,};
-  GF table_a = {0,}, table_b = {0,}, table_d = {0,};
+    // Variables for e_1
+    GF t1_e1 = {0}, t2_e1 = {0};
+    GF table_5_e1 = {0}, table_6_e1 = {0};
+    GF table_a_e1 = {0}, table_b_e1 = {0}, table_d_e1 = {0};
+    // Variables for e_2
+    GF t1_e2 = {0}, t2_e2 = {0}, t3_e2 = {0};
+    GF table_5_e2 = {0}, table_6_e2 = {0};
+    GF table_a_e2 = {0}, table_b_e2 = {0}, table_d_e2 = {0};
 
-  // t1 = in ^ 4
-  GF_sqr(table_d, in);
-  GF_sqr(t1, table_d);
+    // Shared precomputation: Compute small powers for both inputs
+    // e_1: t1_e1 = in1 ^ 4
+    // e_2: t1_e2 = in2 ^ 4
+    GF_sqr(table_d_e1, in1);
+    GF_sqr(table_d_e2, in2);
+    GF_sqr(t1_e1, table_d_e1);
+    GF_sqr(t1_e2, table_d_e2);
 
-  // table_5 = in ^ 5
-  GF_mul(table_5, t1, in);
-  // table_6 = in ^ 6
-  GF_mul(table_6, table_5, in);
-  // table_a = in ^ 10 = (in ^ 5) ^ 2
-  GF_sqr(table_a, table_5);
-  // table_b = in ^ 11
-  GF_mul(table_b, table_a, in);
-  // table_d = in ^ 13
-  GF_mul(table_d, table_b, table_d);
-
-  // t1 = in ^ (0xad)
-  GF_sqr(t1, table_a);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_d);
-
-  // t2 = in ^ (0xad 6), table_d = in ^ (0xad5)
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t2, t1, table_6);
-  GF_mul(table_d, t1, table_5);
-
-  // t1 = in ^ (0xad6 b)
-  GF_sqr(t1, t2);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xad6b 5)
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_5);
-
-  // t1 = in ^ (0xad6b5 6)
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_6);
-
-  // t1 = in ^ (0xad6b56 b)
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xad6b56b 5)
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_5);
-
-  // t1 = in ^ (0xad6b56b5 a)
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_a);
-
-  // t1 = in ^ (0xad6b56b5a b)
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xad6b56b5ab 5)
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_5);
-
-  // table_d = in ^ (0xad6b56b5ab5 ad5)
-  for (i = 0; i < 12; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(table_d, t1, table_d);
-
-  // t1 = n ^ (0xad6b56b5ab5ad5 ad6)
-  GF_sqr(t1, table_d);
-  for (i = 1; i < 12; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, t2);
-
-  // t1 = in ^ (0xad6b56b5ab5ad5ad6 ad6b56b5ab5ad5)
-  for (i = 0; i < 56; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_d);
-
-  // t1 = in ^ (0xad6b56b5ab5ad5ad6ad6b56b5ab5ad5 ad6)
-  for (i = 0; i < 12; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, t2);
-
-  // t1 = in ^ (0xad6b56b5ab5ad5ad6ad6b56b5ab5ad5ad6 ad6b56b5ab5ad5)
-  for (i = 0; i < 56; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(out, t1, table_d);
-}
-
-// inverse Mersenne S-box with e2 = 47
-// (2 ^ 47 - 1) ^ (-1) mod (2 ^ 192 - 1)
-// = 0xddddddddddddbbbbbbbbbbbb777777777776eeeeeeeeeeed
-// dddd dddd dddd bb bb bb bb bb bb 77 77 77 77 77 76 ee ee ee ee ee ed
-void GF_exp_invmer_e_2(GF out, const GF in)
-{
-  size_t i;
-  GF t1 = {0,}, t2 = {0,};
-  GF table_6 = {0,}, table_7 = {0,};
-  GF table_b = {0,}, table_d = {0,}, table_e = {0,};
-
-  // t1 = in ^ 3
-  GF_sqr(table_d, in);
-  GF_mul(t1, table_d, in);
-
-  // table_6 = (in ^ 3) ^ 2
-  GF_sqr(table_6, t1);
-  // table_7 = in ^ 7
-  GF_mul(table_7, table_6, in);
-  // table_b = in ^ 11
-  GF_sqr(table_b, table_d);
-  GF_mul(table_b, table_b, table_7);
-  // table_d = in ^ 13
-  GF_mul(table_d, table_6, table_7);
-  // table_e = in ^ 14
-  GF_sqr(table_e, table_7);
-
-  // table_b = in ^ (0xbb)
-  GF_sqr(t1, table_b);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(table_b, t1, table_b);
-
-  // table_7 = in ^ (0x77), table_6 = in ^ (0x76)
-  GF_sqr(t1, table_7);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(table_6, t1, table_6);
-  GF_mul(table_7, t1, table_7);
-
-  // t2 = in ^ (0xdd)
-  GF_sqr(t1, table_d);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t2, t1, table_d);
-
-  // table_e = in ^ (0xee), table_d = in ^ (0xed)
-  GF_sqr(t1, table_e);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(table_d, t1, table_d);
-  GF_mul(table_e, t1, table_e);
-
-  // t2 = in ^ (0xdd dd)
-  GF_sqr(t1, t2);
-  for (i = 1; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t2, t1, t2);
-
-  // t1 = in ^ (0xdddd dddd)
-  GF_sqr(t1, t2);
-  for (i = 1; i < 16; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, t2);
-
-  // t1 = in ^ (0xdddddddd dddd)
-  for (i = 0; i < 16; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, t2);
-
-  // t1 = in ^ (0xdddddddddddd bb)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xddddddddddddbb bb)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xddddddddddddbbbb bb)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xddddddddddddbbbbbb bb)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbb bb)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbb bb)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb 77)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb77 77)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb7777 77)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb777777 77)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb77777777 77)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb7777777777 76)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_6);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb777777777776 ee)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_e);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb777777777776ee ee)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_e);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb777777777776eeee ee)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_e);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb777777777776eeeeee ee)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_e);
-
-  // t1 = in ^ (0xddddddddddddbbbbbbbbbbbb777777777776eeeeeeee ee)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_e);
-
-  // out = in ^ (0xddddddddddddbbbbbbbbbbbb777777777776eeeeeeeeee ed)
-  for (i = 0; i < 8; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(out, t1, table_d);
+    // e_1: table_5_e1 = in1 ^ 5, table_6_e1 = in1 ^ 6
+    // e_2: table_5_e2 = in2 ^ 5, table_6_e2 = in2 ^ 6
+    GF_mul(table_5_e1, t1_e1, in1);
+    GF_mul(table_5_e2, t1_e2, in2);
+    GF_mul(table_6_e1, table_5_e1, in1);
+    GF_mul(table_6_e2, table_5_e2, in2);
+    // e_1: table_a_e1 = in1 ^ 10, table_b_e1 = in1 ^ 11, table_d_e1 = in1 ^ 13
+    // e_2: table_a_e2 = in2 ^ 10, table_b_e2 = in2 ^ 11, table_d_e2 = in2 ^ 13
+    GF_sqr(table_a_e1, table_5_e1);
+    GF_sqr(table_a_e2, table_5_e2);
+    GF_mul(table_b_e1, table_a_e1, in1);
+    GF_mul(table_b_e2, table_a_e2, in2);
+    GF_mul(table_d_e1, table_b_e1, table_d_e1);
+    GF_mul(table_d_e2, table_b_e2, table_d_e2);
+    GF_sqr(t1_e1, table_b_e1);
+    GF_sqr(t1_e2, table_b_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(table_b_e1, t1_e1, table_6_e1);
+    GF_mul(table_b_e2, t1_e2, table_5_e2);
+    GF_mul(table_5_e1, t1_e1, table_5_e1);
+    GF_mul(t3_e2, t1_e2, table_6_e2);
+    GF_sqr(t1_e1, table_b_e1);
+    GF_sqr(t1_e2, t3_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t2_e2, t1_e2, table_d_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t2_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_b_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_d_e1);
+    GF_mul(t1_e2, t1_e2, table_b_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_6_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t2_e1, t1_e1, table_d_e1); //70
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t2_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, t2_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_6_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, table_a_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_d_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, table_d_e2); //238
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_a_e1); //91
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_d_e1);
+    GF_sqr(t1_e1, t1_e1);  //1
+    GF_sqr(t1_e2, t1_e2);  //1
+    GF_sqr(t1_e1, t1_e1);  //2
+    GF_sqr(t1_e2, t1_e2);  //2
+    GF_sqr(t1_e1, t1_e1);  //3
+    GF_sqr(t1_e2, t1_e2);  //3
+    GF_sqr(t1_e1, t1_e1);  //4
+    GF_sqr(t1_e2, t1_e2);  //4
+    GF_sqr(t1_e1, t1_e1);  //5
+    GF_sqr(t1_e2, t1_e2);  //5  
+    GF_sqr(t1_e1, t1_e1);  //6
+    GF_mul(t1_e2, t1_e2, t2_e2);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);  //7
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);  //8
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_5_e1);   //line 105
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, table_a_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);  //11
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);  //12
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, table_d_e2); 
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1); 
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_5_e1);  //line 112
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);  //6
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_b_e1); //line 119
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, t2_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, table_6_e2);  //line 273
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, table_d_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);  //7
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);  //8
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);  //9
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);  //10
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, t2_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, t2_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, table_6_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_a_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, table_d_e2); //line 301
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_d_e1); //line 140
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_a_e1);  //line 147
+    GF_mul(t1_e2, t1_e2, t3_e2);       //line 308
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_mul(t1_e1, t1_e1, table_d_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(t1_e2, t1_e2, t2_e2);
+    GF_mul(t1_e1, t1_e1, table_5_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_sqr(t1_e2, t1_e2);
+    GF_sqr(t1_e1, t1_e1);
+    GF_mul(out2, t1_e2, table_b_e2);
+    GF_mul(out1, t1_e1, table_5_e1);
 }
 
 // Mersenne exponentiation with e_star = 5
@@ -457,8 +438,7 @@ void aim2(uint8_t ct[AIM2_NUM_BYTES_FIELD],
   GF_add(state[1], pt_GF, aim2_constants[1]);
 
   // non-linear component: inverse Mersenne S-box
-  GF_exp_invmer_e_1(state[0], state[0]);
-  GF_exp_invmer_e_2(state[1], state[1]);
+  GF_exp_invmer_e_1_2(state[0],state[1],state[0],state[1]);
 
   // linear component: affine layer
   GF_transposed_matmul(state[0], state[0], (const GF *)matrix_U[0]);
@@ -486,6 +466,5 @@ void aim2_sbox_outputs(GF sbox_outputs[AIM2_NUM_INPUT_SBOX], const GF pt)
   GF_add(sbox_outputs[1], pt, aim2_constants[1]);
 
   // non-linear component: inverse Mersenne S-box
-  GF_exp_invmer_e_1(sbox_outputs[0], sbox_outputs[0]);
-  GF_exp_invmer_e_2(sbox_outputs[1], sbox_outputs[1]);
+  GF_exp_invmer_e_1_2(sbox_outputs[0],sbox_outputs[1],sbox_outputs[0],sbox_outputs[1]);
 }
