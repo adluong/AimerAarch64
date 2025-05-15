@@ -1,76 +1,41 @@
+
 CC = gcc
-CFLAGS = -O3 -march=native -fomit-frame-pointer
+CFLAGS = -O3 -march=native -fomit-frame-pointer -Wall
 
-VARIANTS = src/aimer128f src/aimer128s src/aimer192f src/aimer192s src/aimer256f src/aimer256s
-OBJDIR = obj
+# Common sources
+COMMON_SRC = common/rng.c common/cpucycles.c common/fips202.c
 
-# Shared source files and objects
-SHARED_SRC = common/fips202.c common/aes.c common/rng.c common/tree.c common/speed_print.c common/cpucycles.c
-SHARED_OBJ = $(patsubst common/%.c, $(OBJDIR)/common/%.o, $(SHARED_SRC))
+# AIMER variants
+VARIANTS = aimer128f aimer128s aimer192f aimer192s aimer256f aimer256s
 
-# Test executables
-ALL_TESTAIM2 = $(patsubst %, %/tests/test_aim2, $(VARIANTS))
-ALL_TESTSIGN = $(patsubst %, %/tests/test_sign, $(VARIANTS))
-ALL_TESTSPEED = $(patsubst %, %/tests/test_speed, $(VARIANTS))
-ALL_KAT = $(patsubst %, %/PQCgenKAT_sign, $(VARIANTS))
-
-all: $(ALL_TESTAIM2) $(ALL_TESTSIGN) $(ALL_TESTSPEED) $(ALL_KAT)
-
-# Variant-specific object files
-define variant_obj
-$(OBJDIR)/$*/aim2.o $(OBJDIR)/$*/field.o $(OBJDIR)/$*/hash.o $(OBJDIR)/$*/sign.o $(OBJDIR)/$*/__asm_field.o
+# Define object files for each variant
+define variant_objs
+$(1)_OBJS = src/$(1)/aim2.o src/$(1)/field.o src/$(1)/__asm_field.o src/$(1)/hash.o src/$(1)/sign.o
 endef
 
-# Build rules for test executables
-$(ALL_TESTAIM2): %/tests/test_aim2: $(OBJDIR)/%/tests/test_aim2.o $(filter-out $(OBJDIR)/%/sign.o, $(call variant_obj,%)) $(OBJDIR)/common/fips202.o
-	$(CC) $(CFLAGS) $^ -o $@
+# Generate object file variables for each variant
+$(foreach variant,$(VARIANTS),$(eval $(call variant_objs,$(variant))))
 
-$(ALL_TESTSIGN): %/tests/test_sign: $(OBJDIR)/%/tests/test_sign.o $(call variant_obj,%) $(OBJDIR)/common/fips202.o $(OBJDIR)/common/aes.o $(OBJDIR)/common/rng.o $(OBJDIR)/common/tree.o
-	$(CC) $(CFLAGS) $^ -o $@
+# All object files
+ALL_OBJS = $(foreach variant,$(VARIANTS),$($(variant)_OBJS)) $(COMMON_SRC:.c=.o)
 
-$(ALL_TESTSPEED): %/tests/test_speed: $(OBJDIR)/%/tests/test_speed.o $(call variant_obj,%) $(OBJDIR)/common/fips202.o $(OBJDIR)/common/aes.o $(OBJDIR)/common/rng.o $(OBJDIR)/common/tree.o $(OBJDIR)/common/speed_print.o $(OBJDIR)/common/cpucycles.o
-	$(CC) $(CFLAGS) $^ -o $@
+# Target
+all: main
 
-$(ALL_KAT): %/PQCgenKAT_sign: $(OBJDIR)/common/PQCgenKAT_sign.o $(call variant_obj,%) $(OBJDIR)/common/fips202.o $(OBJDIR)/common/aes.o $(OBJDIR)/common/rng.o $(OBJDIR)/common/tree.o
-	$(CC) $(CFLAGS) $^ -o $@
+# Pattern rule for compiling .c files
+%.o: %.c
+	$(CC) $(CFLAGS) -I./src/$(@D:common=common) -c $< -o $@
 
-# Compilation rules
-$(OBJDIR)/%/aim2.o: %/aim2.c | $(OBJDIR)/%
-	$(CC) $(CFLAGS) -I$* -c $< -o $@
-
-$(OBJDIR)/%/field.o: %/field.c | $(OBJDIR)/%
-	$(CC) $(CFLAGS) -I$* -c $< -o $@
-
-$(OBJDIR)/%/hash.o: %/hash.c | $(OBJDIR)/%
-	$(CC) $(CFLAGS) -I$* -c $< -o $@
-
-$(OBJDIR)/%/sign.o: %/sign.c | $(OBJDIR)/%
-	$(CC) $(CFLAGS) -I$* -c $< -o $@
-
-$(OBJDIR)/%/tests/test_aim2.o: %/tests/test_aim2.c | $(OBJDIR)/%/tests
-	$(CC) $(CFLAGS) -I$* -c $< -o $@
-
-$(OBJDIR)/%/tests/test_sign.o: %/tests/test_sign.c | $(OBJDIR)/%/tests
-	$(CC) $(CFLAGS) -I$* -c $< -o $@
-
-$(OBJDIR)/%/tests/test_speed.o: %/tests/test_speed.c | $(OBJDIR)/%/tests
-	$(CC) $(CFLAGS) -I$* -c $< -o $@
-
-$(OBJDIR)/common/PQCgenKAT_sign.o: common/PQCgenKAT_sign.c | $(OBJDIR)/common
+# Pattern rule for compiling .S files
+%.o: %.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/common/%.o: common/%.c | $(OBJDIR)/common
-	$(CC) $(CFLAGS) -c $< -o $@
+# Build main executable
+main: main.o $(ALL_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
 
-$(OBJDIR)/%/__asm_field.o: %/__asm_field.S | $(OBJDIR)/%
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Directory creation
-$(OBJDIR)/%/tests $(OBJDIR)/% $(OBJDIR)/common:
-	mkdir -p $@
-
+# Clean rule
 clean:
-	rm -rf $(OBJDIR) $(ALL_TESTAIM2) $(ALL_TESTSIGN) $(ALL_TESTSPEED) $(ALL_KAT)
-	for variant in $(VARIANTS); do rm -f $$variant/PQCsignKAT_*.rsp $$variant/PQCsignKAT_*.req; done
+	rm -f main main.o $(ALL_OBJS)
 
 .PHONY: all clean
