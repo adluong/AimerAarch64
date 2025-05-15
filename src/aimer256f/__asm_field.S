@@ -30,19 +30,19 @@
 .endm
 
 // void GF_set0(GF a)
-.global samsungsds_aimer256f_aarch64_GF_set0
-.global _samsungsds_aimer256f_aarch64_GF_set0
-samsungsds_aimer256f_aarch64_GF_set0:
-_samsungsds_aimer256f_aarch64_GF_set0:
+.global kucp_aimer256f_aarch64_GF_set0
+.global _kucp_aimer256f_aarch64_GF_set0
+kucp_aimer256f_aarch64_GF_set0:
+_kucp_aimer256f_aarch64_GF_set0:
   STP xzr, xzr, [x0]
   STP xzr, xzr, [x0, #16]
   RET
 
 // void GF_copy(GF out, const GF in)
-.global samsungsds_aimer256f_aarch64_GF_copy
-.global _samsungsds_aimer256f_aarch64_GF_copy
-samsungsds_aimer256f_aarch64_GF_copy:
-_samsungsds_aimer256f_aarch64_GF_copy:
+.global kucp_aimer256f_aarch64_GF_copy
+.global _kucp_aimer256f_aarch64_GF_copy
+kucp_aimer256f_aarch64_GF_copy:
+_kucp_aimer256f_aarch64_GF_copy:
   LDP x3, x4, [x1]
   STP x3, x4, [x0]
   LDP x3, x4, [x1, #16]
@@ -50,10 +50,10 @@ _samsungsds_aimer256f_aarch64_GF_copy:
   RET
 
 // void GF_add(GF c, const GF a, const GF b)
-.global samsungsds_aimer256f_aarch64_GF_add
-.global _samsungsds_aimer256f_aarch64_GF_add
-samsungsds_aimer256f_aarch64_GF_add:
-_samsungsds_aimer256f_aarch64_GF_add:
+.global kucp_aimer256f_aarch64_GF_add
+.global _kucp_aimer256f_aarch64_GF_add
+kucp_aimer256f_aarch64_GF_add:
+_kucp_aimer256f_aarch64_GF_add:
   LDP x3, x4, [x1]
   LDP x5, x6, [x2]
   EOR x3, x3, x5
@@ -67,10 +67,10 @@ _samsungsds_aimer256f_aarch64_GF_add:
   RET
 
 // void GF_mul(GF c, const GF a, const GF b)
-.global samsungsds_aimer256f_aarch64_GF_mul
-.global _samsungsds_aimer256f_aarch64_GF_mul
-samsungsds_aimer256f_aarch64_GF_mul:
-_samsungsds_aimer256f_aarch64_GF_mul:
+.global kucp_aimer256f_aarch64_GF_mul
+.global _kucp_aimer256f_aarch64_GF_mul
+kucp_aimer256f_aarch64_GF_mul:
+_kucp_aimer256f_aarch64_GF_mul:
   LD1    {v4.2d, v5.2d}, [x1]
   LD1    {v6.2d, v7.2d}, [x2]
   MOVI   v16.16b, #0
@@ -94,10 +94,10 @@ _samsungsds_aimer256f_aarch64_GF_mul:
   RET
 
 // void GF_mul_N(GF c[AIMER_N], const GF a[AIMER_N], const GF b)
-.global samsungsds_aimer256f_aarch64_GF_mul_N
-.global _samsungsds_aimer256f_aarch64_GF_mul_N
-samsungsds_aimer256f_aarch64_GF_mul_N:
-_samsungsds_aimer256f_aarch64_GF_mul_N:
+.global kucp_aimer256f_aarch64_GF_mul_N
+.global _kucp_aimer256f_aarch64_GF_mul_N
+kucp_aimer256f_aarch64_GF_mul_N:
+_kucp_aimer256f_aarch64_GF_mul_N:
   LD1    {v28.2d, v29.2d}, [x2]
   MOVI   v30.16b, #0
   MOV    x3, 0x425
@@ -145,10 +145,10 @@ Loop_GF_mul_N:
   RET
 
 // void GF_mul_add(GF c, const GF a, const GF b)
-.global samsungsds_aimer256f_aarch64_GF_mul_add
-.global _samsungsds_aimer256f_aarch64_GF_mul_add
-samsungsds_aimer256f_aarch64_GF_mul_add:
-_samsungsds_aimer256f_aarch64_GF_mul_add:
+.global kucp_aimer256f_aarch64_GF_mul_add
+.global _kucp_aimer256f_aarch64_GF_mul_add
+kucp_aimer256f_aarch64_GF_mul_add:
+_kucp_aimer256f_aarch64_GF_mul_add:
   LD1    {v4.2d, v5.2d}, [x1]
   LD1    {v6.2d, v7.2d}, [x2]
   MOVI   v16.16b, #0
@@ -177,10 +177,10 @@ _samsungsds_aimer256f_aarch64_GF_mul_add:
   RET
 
 // void GF_mul_add_N(GF c[AIMER_N], const GF a[AIMER_N], const GF b)
-.global samsungsds_aimer256f_aarch64_GF_mul_add_N
-.global _samsungsds_aimer256f_aarch64_GF_mul_add_N
-samsungsds_aimer256f_aarch64_GF_mul_add_N:
-_samsungsds_aimer256f_aarch64_GF_mul_add_N:
+.global kucp_aimer256f_aarch64_GF_mul_add_N
+.global _kucp_aimer256f_aarch64_GF_mul_add_N
+kucp_aimer256f_aarch64_GF_mul_add_N:
+_kucp_aimer256f_aarch64_GF_mul_add_N:
   LD1    {v28.2d, v29.2d}, [x2]
   MOVI   v30.16b, #0
   MOV    x3, 0x425
@@ -236,10 +236,10 @@ Loop_GF_mul_add_N:
   RET
 
 // void GF_sqr(GF c, const GF a)
-.global samsungsds_aimer256f_aarch64_GF_sqr
-.global _samsungsds_aimer256f_aarch64_GF_sqr
-samsungsds_aimer256f_aarch64_GF_sqr:
-_samsungsds_aimer256f_aarch64_GF_sqr:
+.global kucp_aimer256f_aarch64_GF_sqr
+.global _kucp_aimer256f_aarch64_GF_sqr
+kucp_aimer256f_aarch64_GF_sqr:
+_kucp_aimer256f_aarch64_GF_sqr:
   LD1    {v0.2d, v1.2d}, [x1]
   MOVI   v16.16b, #0
   MOV    x3, 0x425
@@ -255,10 +255,10 @@ _samsungsds_aimer256f_aarch64_GF_sqr:
   RET
 
 // void GF_sqr_N(GF c[AIMER_N], const GF a[AIMER_N])
-.global samsungsds_aimer256f_aarch64_GF_sqr_N
-.global _samsungsds_aimer256f_aarch64_GF_sqr_N
-samsungsds_aimer256f_aarch64_GF_sqr_N:
-_samsungsds_aimer256f_aarch64_GF_sqr_N:
+.global kucp_aimer256f_aarch64_GF_sqr_N
+.global _kucp_aimer256f_aarch64_GF_sqr_N
+kucp_aimer256f_aarch64_GF_sqr_N:
+_kucp_aimer256f_aarch64_GF_sqr_N:
   MOVI   v30.16b, #0
   MOV    x3, 0x425
   DUP    v31.2d, x3
@@ -289,10 +289,10 @@ Loop_GF_sqr_N:
 
 // void POLY_mul_add_N(GF lo[AIMER_N], GF hi[AIMER_N],
 //                     const GF a[AIMER_N], const GF b)
-.global samsungsds_aimer256f_aarch64_POLY_mul_add_N
-.global _samsungsds_aimer256f_aarch64_POLY_mul_add_N
-samsungsds_aimer256f_aarch64_POLY_mul_add_N:
-_samsungsds_aimer256f_aarch64_POLY_mul_add_N:
+.global kucp_aimer256f_aarch64_POLY_mul_add_N
+.global _kucp_aimer256f_aarch64_POLY_mul_add_N
+kucp_aimer256f_aarch64_POLY_mul_add_N:
+_kucp_aimer256f_aarch64_POLY_mul_add_N:
   LD1    {v28.2d, v29.2d}, [x3]
   MOVI   v30.16b, #0
 
@@ -353,10 +353,10 @@ Loop_POLY_mul_add_N:
   RET
 
 // void POLY_red_N(GF lo[AIMER_N], const GF hi[AIMER_N])
-.global samsungsds_aimer256f_aarch64_POLY_red_N
-.global _samsungsds_aimer256f_aarch64_POLY_red_N
-samsungsds_aimer256f_aarch64_POLY_red_N:
-_samsungsds_aimer256f_aarch64_POLY_red_N:
+.global kucp_aimer256f_aarch64_POLY_red_N
+.global _kucp_aimer256f_aarch64_POLY_red_N
+kucp_aimer256f_aarch64_POLY_red_N:
+_kucp_aimer256f_aarch64_POLY_red_N:
   MOVI   v30.16b, #0
   MOV    x3, 0x425
   DUP    v31.2d, x3
