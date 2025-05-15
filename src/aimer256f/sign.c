@@ -6,7 +6,7 @@
 #include "hash.h"
 #include "params.h"
 #include "sign.h"
-#include "../../common/tree.h"
+#include "tree.h"
 #include "../../common/rng.h"
 #include <stddef.h>
 #include <stdint.h>
