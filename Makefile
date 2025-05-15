@@ -1,58 +1,50 @@
-CC = gcc
-CFLAGS = -O3 -march=native -fomit-frame-pointer -Wall
-# Add -fPIC for shared library position-independent code
-# Add -DNDEBUG for release builds
+###############################################
+# Root Makefile for aarch64 KUCP-AIMER project  #
+###############################################
 
-# Common sources - add missing tree.c and aes.c
-COMMON_SRC = common/rng.c common/cpucycles.c common/fips202.c common/tree.c common/aes.c
+# Compiler and flags
+CC      := gcc
+CFLAGS  := -O3 -march=armv8-a -I. -Icommon
+AS      := gcc
+ASFLAGS := -O3 -march=armv8-a
 
-# AIMER variants
-VARIANTS = aimer128f aimer128s aimer192f aimer192s aimer256f aimer256s
+# Directories
+COMMON_DIR := common
+SRC_DIR    := src
 
-# Build all variants as separate libraries to avoid symbol conflicts
-.PHONY: all
-all: test_main
+# Sources
+COMMON_SRCS := $(wildcard $(COMMON_DIR)/*.c)
+AIMER_C_SRCS := $(wildcard $(SRC_DIR)/*/*.c)
+AIMER_S_SRCS := $(wildcard $(SRC_DIR)/*/*.S)
 
-# Object files for common code
-COMMON_OBJS = $(COMMON_SRC:.c=.o)
+# Object files
+COMMON_OBJS := $(patsubst %.c, %.o, $(COMMON_SRCS))
+AIMER_C_OBJS := $(patsubst %.c, %.o, $(AIMER_C_SRCS))
+AIMER_S_OBJS := $(patsubst %.S, %.o, $(AIMER_S_SRCS))
+ALL_OBJS    := $(COMMON_OBJS) $(AIMER_C_OBJS) $(AIMER_S_OBJS)
 
-# Compile common source files
+# Main executable
+TARGET := main
+
+.PHONY: all clean
+
+all: $(TARGET)
+
+# Link main with all objects
+$(TARGET): main.c $(ALL_OBJS)
+	$(CC) $(CFLAGS) -o $@ main.c $(ALL_OBJS)
+
+# Compile common C sources
 $(COMMON_OBJS): %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -Icommon -c $< -o $@
 
-# Compile main program
-main.o: main.c api.h
-	$(CC) $(CFLAGS) -c $< -o $@
+# Compile variant-specific C sources
+$(AIMER_C_OBJS): %.o: %.c
+	$(CC) $(CFLAGS) -Icommon -I$(dir $<) -c $< -o $@
 
-# For each variant, compile with unique namespaces to avoid symbol conflicts
-define compile_variant
-src/$(1)/%.o: src/$(1)/%.c
-	$(CC) $(CFLAGS) -I. -Isrc/$(1) -DAIMER_VARIANT=$(1) -c $< -o $@
+# Assemble variant-specific .S sources
+$(AIMER_S_OBJS): %.o: %.S
+	$(AS) $(ASFLAGS) -Icommon -I$(dir $<) -c $< -o $@
 
-src/$(1)/__asm_field.o: src/$(1)/__asm_field.S
-	$(CC) $(CFLAGS) -c $< -o $@
-
-src/$(1)_objs: $(patsubst %.c,%.o,$(wildcard src/$(1)/*.c)) src/$(1)/__asm_field.o
-	@echo "Building variant $(1) complete"
-endef
-
-# Generate compilation rules for each variant
-$(foreach variant,$(VARIANTS),$(eval $(call compile_variant,$(variant))))
-
-# Build the test program
-test_main: main.o $(COMMON_OBJS) $(foreach variant,$(VARIANTS),src/$(variant)_objs)
-	$(CC) $(CFLAGS) main.o $(COMMON_OBJS) $(foreach variant,$(VARIANTS),$(patsubst %.c,%.o,$(wildcard src/$(variant)/*.c)) src/$(variant)/__asm_field.o) -o main
-
-# Clean rule
 clean:
-	rm -f main main.o $(COMMON_OBJS)
-	for variant in $(VARIANTS); do \
-		rm -f src/$variant/*.o; \
-	done
-
-# Alternative approach: build each variant as a separate library
-# This would be better for a production library setup
-lib: $(foreach variant,$(VARIANTS),lib$(variant).a)
-
-lib%.a: src/%_objs $(COMMON_OBJS)
-	ar rcs $@ $(patsubst %.c,%.o,$(wildcard src/$*/*.c)) src/$*/__asm_field.o $(COMMON_OBJS)
+	rm -f $(ALL_OBJS) $(TARGET)
