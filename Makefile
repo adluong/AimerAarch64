@@ -7,7 +7,6 @@ ALL_TESTAIM2 = $(patsubst %, %/tests/test_aim2, $(VARIANTS))
 ALL_TESTSIGN = $(patsubst %, %/tests/test_sign, $(VARIANTS))
 ALL_TESTSPEED = $(patsubst %, %/tests/test_speed, $(VARIANTS))
 ALL_KAT  = $(patsubst %, %/PQCgenKAT_sign, $(VARIANTS))
-#ALL_TEST = $(patsubst %, %/test, $(VARIANTS))
 
 all: $(ALL_TESTAIM2) $(ALL_TESTSIGN) $(ALL_TESTSPEED) $(ALL_KAT)
 
@@ -23,8 +22,6 @@ $(ALL_TESTSPEED): %/tests/test_speed: %/tests/test_speed.c %/aim2.c %/field.c %/
 $(ALL_KAT): %/PQCgenKAT_sign: common/PQCgenKAT_sign.c %/aim2.c %/field.c %/__asm_field.S %/hash.c %/sign.c common/tree.c common/aes.c common/fips202.c common/rng.c
 	$(CC) $(CFLAGS) -I$* $^ -o $@
 
-#$(ALL_TEST): %/test: common/test.c %/aim2.c %/field.c %/__asm_field.S %/hash.c %/sign.c common/tree.c common/aes.c common/fips202.c common/rng.c
-#	$(CC) $(CFLAGS) -I$* $^ -o $@
 clean:
 	rm -f $(ALL_TESTAIM2) $(ALL_TESTSIGN) $(ALL_TESTSPEED) $(ALL_KAT)
 	for variant in $(VARIANTS); do \
