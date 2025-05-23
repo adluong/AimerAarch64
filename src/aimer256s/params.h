@@ -3,7 +3,7 @@
 #ifndef PARAMS_H
 #define PARAMS_H
 
-#define AIMER_NAMESPACE(s)          kucp_aimer256s_aarch64_##s
+#define AIMER_NAMESPACE(s)          samsungsds_aimer256s_aarch64_##s
 
 #define SECURITY_BITS               256                  // security parameter
 #define SECURITY_BYTES              (SECURITY_BITS / 8)  // byte size of security parameter
