@@ -6,8 +6,9 @@
 #include "params.h"
 #include <stdint.h>
 
-typedef uint64_t GF[3];
+typedef uint64_t GF[2];
 
+// Function declarations with proper namespacing
 #define GF_set0 AIMER_NAMESPACE(GF_set0)
 void GF_set0(GF a);
 #define GF_copy AIMER_NAMESPACE(GF_copy)
@@ -39,9 +40,9 @@ void GF_transposed_matmul_add_N(GF c[AIMER_N], const GF a[AIMER_N],
                                 const GF b[AIM2_NUM_BITS_FIELD]);
 
 #define POLY_mul_add_N AIMER_NAMESPACE(POLY_mul_add_N)
-void POLY_mul_add_N(GF mult_buf[2 * AIMER_N],
+void POLY_mul_add_N(GF lo[AIMER_N], GF hi[AIMER_N],
                     const GF a[AIMER_N], const GF b);
 #define POLY_red_N AIMER_NAMESPACE(POLY_red_N)
-void POLY_red_N(GF lo[AIMER_N], const GF mult_buf[2 * AIMER_N]);
+void POLY_red_N(GF lo[AIMER_N], const GF hi[AIMER_N]);
 
 #endif // FIELD_H
