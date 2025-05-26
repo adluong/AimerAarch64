@@ -8,6 +8,7 @@
 
 typedef uint64_t GF[2];
 
+// Function declarations with proper namespacing
 #define GF_set0 AIMER_NAMESPACE(GF_set0)
 void GF_set0(GF a);
 #define GF_copy AIMER_NAMESPACE(GF_copy)
