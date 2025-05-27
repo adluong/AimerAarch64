@@ -7,6 +7,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// inverse Mersenne S-box with e1 = 49
+// (2 ^ 49 - 1) ^ (-1) mod (2 ^ 128 - 1) = 0xb6b6d6d6dadb5b5b6b6b6d6dadadb5b5
+// b6b6d6d 6 d a d b5 b5 b6 b6b6d6d a d a d b5 b5
+// Compute in ^ (0xb6) and in ^ (0xb5)
+// e_1: table_b_e1 = in1 ^ (0xb6), table_5_e1 = in1 ^ (0xb5)
+// e_2: t3_e2 = in2 ^ (0xb6), table_b_e2 = in2 ^ (0xb5)
+
 void GF_exp_invmer_e_1_2(GF out1, GF out2, const GF in1, const GF in2)
 {
     // Variables for e_1
@@ -329,137 +336,6 @@ void GF_exp_invmer_e_1_2(GF out1, GF out2, const GF in1, const GF in2)
     GF_mul(out1, t1_e1, table_5_e1);
 }
 
-// inverse Mersenne S-box with e3 = 7
-// (2 ^ 7 - 1) ^ (-1) mod (2 ^ 256 - 1)
-// = 0xddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76ed
-// ddbb76e ddbb76e ddbb76e ddbb76e ddbb76e ddbb76e ddbb76e ddbb76e ddbb76e d
-void GF_exp_invmer_e_3(GF out, const GF in)
-{
-  size_t i;
-  GF t1 = {0,};
-  GF table_6 = {0,}, table_7 = {0,}, table_b = {0,}, table_d = {0,};
-
-  // t1 = in ^ 3
-  GF_sqr(table_d, in);
-  GF_mul(t1, table_d, in);
-
-  // table_6 = in ^ 6
-  GF_sqr(table_6, t1);
-  // table_7 = in ^ 7
-  GF_mul(table_7, table_6, in);
-  // table_b = in ^ 11
-  GF_sqr(table_b, table_d);
-  GF_mul(table_b, table_7, table_b);
-  // table_d = in ^ 13
-  GF_mul(table_d, table_b, table_d);
-
-  // t1 = in ^ 0xdd
-  GF_sqr(t1, table_d);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_d);
-
-  // t1 = in ^ 0xdd b
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ 0xddb b
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_b);
-
-  // t1 = in ^ 0xddbb 7
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ 0xddbb7 6
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_6);
-
-  // table_7 = in ^ 0xddbb76 e
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(t1, t1, table_7);
-  GF_sqr(table_7, t1);
-
-  // t1 = in ^ 0xddbb76e ddbb76e
-  GF_sqr(t1, table_7);
-  for (i = 1; i < 28; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ 0xddbb76eddbb76e ddbb76e
-  for (i = 0; i < 28; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ 0xddbb76eddbb76eddbb76e ddbb76e
-  for (i = 0; i < 28; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ 0xddbb76eddbb76eddbb76eddbb76e ddbb76e
-  for (i = 0; i < 28; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ 0xddbb76eddbb76eddbb76eddbb76eddbb76e ddbb76e
-  for (i = 0; i < 28; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ 0xddbb76eddbb76eddbb76eddbb76eddbb76eddbb76e ddbb76e
-  for (i = 0; i < 28; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ 0xddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76e ddbb76e
-  for (i = 0; i < 28; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // t1 = in ^ 0xddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76e ddbb76e
-  for (i = 0; i < 28; i++)
-  {
-    GF_sqr(t1, t1);
-  }
-  GF_mul(t1, t1, table_7);
-
-  // out = in ^ 0xddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76eddbb76e d
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_sqr(t1, t1);
-  GF_mul(out, t1, table_d);
-}
-
 // Mersenne exponentiation with e_star = 3
 void GF_exp_mer_e_star(GF out, const GF in)
 {
@@ -537,8 +413,7 @@ void generate_matrix_LU(GF matrix_A[AIM2_NUM_INPUT_SBOX][AIM2_NUM_BITS_FIELD],
   {
     for (size_t i = 0; i < AIM2_NUM_BITS_FIELD; i++)
     {
-      GF_transposed_matmul(matrix_A[num][i], matrix_U[num][i],
-                           (const GF *)matrix_L[num]);
+      GF_transposed_matmul(matrix_A[num][i], matrix_U[num][i],(const GF *)matrix_L[num]);
     }
   }
 }
@@ -561,25 +436,18 @@ void aim2(uint8_t ct[AIM2_NUM_BYTES_FIELD],
   // linear component: constant addition
   GF_add(state[0], pt_GF, aim2_constants[0]);
   GF_add(state[1], pt_GF, aim2_constants[1]);
-  GF_add(state[2], pt_GF, aim2_constants[2]);
-
+  
   // non-linear component: inverse Mersenne S-box
   GF_exp_invmer_e_1_2(state[0],state[1],state[0],state[1]);
-  GF_exp_invmer_e_3(state[2], state[2]);
 
   // linear component: affine layer
   GF_transposed_matmul(state[0], state[0], (const GF *)matrix_U[0]);
-  GF_transposed_matmul(state[0], state[0], (const GF *)matrix_L[0]);
-
   GF_transposed_matmul(state[1], state[1], (const GF *)matrix_U[1]);
+  GF_transposed_matmul(state[0], state[0], (const GF *)matrix_L[0]);
   GF_transposed_matmul(state[1], state[1], (const GF *)matrix_L[1]);
 
-  GF_transposed_matmul(state[2], state[2], (const GF *)matrix_U[2]);
-  GF_transposed_matmul(state[2], state[2], (const GF *)matrix_L[2]);
-
   GF_add(state[0], state[0], state[1]);
-  GF_add(state[2], state[2], vector_b);
-  GF_add(state[0], state[0], state[2]);
+  GF_add(state[0], state[0], vector_b);
 
   // non-linear component: Mersenne S-box
   GF_exp_mer_e_star(state[0], state[0]);
@@ -595,9 +463,7 @@ void aim2_sbox_outputs(GF sbox_outputs[AIM2_NUM_INPUT_SBOX], const GF pt)
   // linear component: constant addition
   GF_add(sbox_outputs[0], pt, aim2_constants[0]);
   GF_add(sbox_outputs[1], pt, aim2_constants[1]);
-  GF_add(sbox_outputs[2], pt, aim2_constants[2]);
 
   // non-linear component: inverse Mersenne S-box
   GF_exp_invmer_e_1_2(sbox_outputs[0],sbox_outputs[1],sbox_outputs[0],sbox_outputs[1]);
-  GF_exp_invmer_e_3(sbox_outputs[2], sbox_outputs[2]);
 }

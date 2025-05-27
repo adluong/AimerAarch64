@@ -38,43 +38,47 @@ void GF_transposed_matmul(GF c, const GF a, const GF b[AIM2_NUM_BITS_FIELD])
 
   uint64_t temp_c0 = 0;
   uint64_t temp_c1 = 0;
-  uint64_t temp_c2 = 0;
-  uint64_t temp_c3 = 0;
   uint64_t mask;
   for (size_t i = AIM2_NUM_WORDS_FIELD; i; --i, ++a_ptr)
   {
     uint64_t index = *a_ptr;
-    for (size_t j = AIM2_NUM_BITS_WORD; j; j -= 4, index >>= 4, b_ptr += 4)
+    for (size_t j = AIM2_NUM_BITS_WORD; j; j -= 8, index >>= 8, b_ptr += 8)
     {
       mask = -(index & 1);
       temp_c0 ^= (b_ptr[0][0] & mask);
       temp_c1 ^= (b_ptr[0][1] & mask);
-      temp_c2 ^= (b_ptr[0][2] & mask);
-      temp_c3 ^= (b_ptr[0][3] & mask);
 
       mask = -((index >> 1) & 1);
       temp_c0 ^= (b_ptr[1][0] & mask);
       temp_c1 ^= (b_ptr[1][1] & mask);
-      temp_c2 ^= (b_ptr[1][2] & mask);
-      temp_c3 ^= (b_ptr[1][3] & mask);
 
       mask = -((index >> 2) & 1);
       temp_c0 ^= (b_ptr[2][0] & mask);
       temp_c1 ^= (b_ptr[2][1] & mask);
-      temp_c2 ^= (b_ptr[2][2] & mask);
-      temp_c3 ^= (b_ptr[2][3] & mask);
 
       mask = -((index >> 3) & 1);
       temp_c0 ^= (b_ptr[3][0] & mask);
       temp_c1 ^= (b_ptr[3][1] & mask);
-      temp_c2 ^= (b_ptr[3][2] & mask);
-      temp_c3 ^= (b_ptr[3][3] & mask);
+
+      mask = -((index >> 4) & 1);
+      temp_c0 ^= (b_ptr[4][0] & mask);
+      temp_c1 ^= (b_ptr[4][1] & mask);
+
+      mask = -((index >> 5) & 1);
+      temp_c0 ^= (b_ptr[5][0] & mask);
+      temp_c1 ^= (b_ptr[5][1] & mask);
+
+      mask = -((index >> 6) & 1);
+      temp_c0 ^= (b_ptr[6][0] & mask);
+      temp_c1 ^= (b_ptr[6][1] & mask);
+
+      mask = -((index >> 7) & 1);
+      temp_c0 ^= (b_ptr[7][0] & mask);
+      temp_c1 ^= (b_ptr[7][1] & mask);
     }
   }
   c[0] = temp_c0;
   c[1] = temp_c1;
-  c[2] = temp_c2;
-  c[3] = temp_c3;
 }
 
 void GF_transposed_matmul_add_N(GF c[AIMER_N], const GF a[AIMER_N],
@@ -87,43 +91,47 @@ void GF_transposed_matmul_add_N(GF c[AIMER_N], const GF a[AIMER_N],
 
     uint64_t temp_c0 = 0;
     uint64_t temp_c1 = 0;
-    uint64_t temp_c2 = 0;
-    uint64_t temp_c3 = 0;
     uint64_t mask;
     for (size_t i = AIM2_NUM_WORDS_FIELD; i; --i, ++a_ptr)
     {
       uint64_t index = *a_ptr;
 
-      for (size_t j = AIM2_NUM_BITS_WORD; j; j -= 4, index >>= 4, b_ptr += 4)
+      for (size_t j = AIM2_NUM_BITS_WORD; j; j -= 8, index >>= 8, b_ptr += 8)
       {
         mask = -(index & 1);
         temp_c0 ^= (b_ptr[0][0] & mask);
         temp_c1 ^= (b_ptr[0][1] & mask);
-        temp_c2 ^= (b_ptr[0][2] & mask);
-        temp_c3 ^= (b_ptr[0][3] & mask);
 
         mask = -((index >> 1) & 1);
         temp_c0 ^= (b_ptr[1][0] & mask);
         temp_c1 ^= (b_ptr[1][1] & mask);
-        temp_c2 ^= (b_ptr[1][2] & mask);
-        temp_c3 ^= (b_ptr[1][3] & mask);
 
         mask = -((index >> 2) & 1);
         temp_c0 ^= (b_ptr[2][0] & mask);
         temp_c1 ^= (b_ptr[2][1] & mask);
-        temp_c2 ^= (b_ptr[2][2] & mask);
-        temp_c3 ^= (b_ptr[2][3] & mask);
 
         mask = -((index >> 3) & 1);
         temp_c0 ^= (b_ptr[3][0] & mask);
         temp_c1 ^= (b_ptr[3][1] & mask);
-        temp_c2 ^= (b_ptr[3][2] & mask);
-        temp_c3 ^= (b_ptr[3][3] & mask);
+
+        mask = -((index >> 4) & 1);
+        temp_c0 ^= (b_ptr[4][0] & mask);
+        temp_c1 ^= (b_ptr[4][1] & mask);
+
+        mask = -((index >> 5) & 1);
+        temp_c0 ^= (b_ptr[5][0] & mask);
+        temp_c1 ^= (b_ptr[5][1] & mask);
+
+        mask = -((index >> 6) & 1);
+        temp_c0 ^= (b_ptr[6][0] & mask);
+        temp_c1 ^= (b_ptr[6][1] & mask);
+
+        mask = -((index >> 7) & 1);
+        temp_c0 ^= (b_ptr[7][0] & mask);
+        temp_c1 ^= (b_ptr[7][1] & mask);
       }
     }
     c[party][0] ^= temp_c0;
     c[party][1] ^= temp_c1;
-    c[party][2] ^= temp_c2;
-    c[party][3] ^= temp_c3;
   }
 }

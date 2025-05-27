@@ -15,7 +15,7 @@ static const uint8_t HASH_PREFIX_3 = 3;
 static const uint8_t HASH_PREFIX_4 = 4;
 static const uint8_t HASH_PREFIX_5 = 5;
 
-typedef shake256incctx hash_instance;
+typedef shake128incctx hash_instance;
 
 #define hash_init AIMER_NAMESPACE(hash_init)
 void hash_init(hash_instance *ctx);

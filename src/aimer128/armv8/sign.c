@@ -40,13 +40,11 @@ void aim2_mpc_N(mult_chk_N_t *mult_chk,
   // pt + c = t ^ {2 ^ e - 1}
   // --> t ^ {2 ^ e} + t * c = t * pt
   // --> z = x * pt
-  GF_sqr_N(mult_chk->z_shares[0], (const GF *)mult_chk->x_shares[0]);
-  for (size_t i = 1; i < 11; i++)
-  {
-    GF_sqr_N(mult_chk->z_shares[0], (const GF *)mult_chk->z_shares[0]);
-  }
-  GF_mul_add_N(mult_chk->z_shares[0], (const GF *)mult_chk->x_shares[0],
-               aim2_constants[0]);
+  GF_mul_N(mult_chk->z_shares[0], (const GF *)mult_chk->x_shares[0],
+           aim2_constants[0]);
+  GF_transposed_matmul_add_N(mult_chk->z_shares[0],
+                             (const GF *)mult_chk->x_shares[0],
+                             aim2_e1_power_matrix);
   GF_transposed_matmul_add_N(mult_chk->x_shares[AIMER_L],
                              (const GF *)mult_chk->x_shares[0], matrix_A[0]);
 
@@ -57,16 +55,6 @@ void aim2_mpc_N(mult_chk_N_t *mult_chk,
                              aim2_e2_power_matrix);
   GF_transposed_matmul_add_N(mult_chk->x_shares[AIMER_L],
                              (const GF *)mult_chk->x_shares[1], matrix_A[1]);
-
-  GF_sqr_N(mult_chk->z_shares[2], (const GF *)mult_chk->x_shares[2]);
-  for (size_t i = 1; i < 7; i++)
-  {
-    GF_sqr_N(mult_chk->z_shares[2], (const GF *)mult_chk->z_shares[2]);
-  }
-  GF_mul_add_N(mult_chk->z_shares[2], (const GF *)mult_chk->x_shares[2],
-               aim2_constants[2]);
-  GF_transposed_matmul_add_N(mult_chk->x_shares[AIMER_L],
-                             (const GF *)mult_chk->x_shares[2], matrix_A[2]);
 
   // x ^ {2 ^ e - 1} = pt + ct
   // --> x ^ {2 ^ e} + x * ct = x * pt
@@ -164,7 +152,6 @@ void run_phase_1(signature_t *sign,
       GF_add(delta.pt_share, delta.pt_share, tape.pt_share);
       GF_add(delta.t_shares[0], delta.t_shares[0], tape.t_shares[0]);
       GF_add(delta.t_shares[1], delta.t_shares[1], tape.t_shares[1]);
-      GF_add(delta.t_shares[2], delta.t_shares[2], tape.t_shares[2]);
       GF_add(delta.a_share, delta.a_share, tape.a_share);
       GF_add(delta.c_share, delta.c_share, tape.c_share);
 
@@ -174,19 +161,16 @@ void run_phase_1(signature_t *sign,
         GF_add(delta.pt_share, delta.pt_share, pt_GF);
         GF_add(delta.t_shares[0], delta.t_shares[0], sbox_outputs[0]);
         GF_add(delta.t_shares[1], delta.t_shares[1], sbox_outputs[1]);
-        GF_add(delta.t_shares[2], delta.t_shares[2], sbox_outputs[2]);
         GF_mul_add(delta.c_share, pt_GF, delta.a_share);
 
         GF_to_bytes(sign->proofs[rep].delta_pt_bytes, delta.pt_share);
         GF_to_bytes(sign->proofs[rep].delta_ts_bytes[0], delta.t_shares[0]);
         GF_to_bytes(sign->proofs[rep].delta_ts_bytes[1], delta.t_shares[1]);
-        GF_to_bytes(sign->proofs[rep].delta_ts_bytes[2], delta.t_shares[2]);
         GF_to_bytes(sign->proofs[rep].delta_c_bytes, delta.c_share);
 
         GF_add(tape.pt_share, delta.pt_share, tape.pt_share);
         GF_add(tape.t_shares[0], delta.t_shares[0], tape.t_shares[0]);
         GF_add(tape.t_shares[1], delta.t_shares[1], tape.t_shares[1]);
-        GF_add(tape.t_shares[2], delta.t_shares[2], tape.t_shares[2]);
         GF_add(tape.c_share, delta.c_share, tape.c_share);
       }
 
@@ -194,7 +178,6 @@ void run_phase_1(signature_t *sign,
       GF_copy(mult_chk[rep].pt_share[party], tape.pt_share);
       GF_copy(mult_chk[rep].x_shares[0][party], tape.t_shares[0]);
       GF_copy(mult_chk[rep].x_shares[1][party], tape.t_shares[1]);
-      GF_copy(mult_chk[rep].x_shares[2][party], tape.t_shares[2]);
       GF_copy(alpha_v_shares[rep][0][party], tape.a_share);
       GF_copy(alpha_v_shares[rep][1][party], tape.c_share);
     }
@@ -251,11 +234,6 @@ void run_phase_2_and_3(signature_t *sign,
                    mult_chk[rep].x_shares[2], epsilons[2]);
     POLY_mul_add_N(alpha_v_shares[rep][1], alpha_v_shares_hi[1],
                    mult_chk[rep].z_shares[2], epsilons[2]);
-
-    POLY_mul_add_N(alpha_v_shares[rep][0], alpha_v_shares_hi[0],
-                   mult_chk[rep].x_shares[3], epsilons[3]);
-    POLY_mul_add_N(alpha_v_shares[rep][1], alpha_v_shares_hi[1],
-                   mult_chk[rep].z_shares[3], epsilons[3]);
 
     POLY_red_N(alpha_v_shares[rep][0], (const GF *)alpha_v_shares_hi[0]);
     POLY_red_N(alpha_v_shares[rep][1], (const GF *)alpha_v_shares_hi[1]);
@@ -484,8 +462,6 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
         GF_add(tape.t_shares[0], tape.t_shares[0], temp);
         GF_from_bytes(temp, sign->proofs[rep].delta_ts_bytes[1]);
         GF_add(tape.t_shares[1], tape.t_shares[1], temp);
-        GF_from_bytes(temp, sign->proofs[rep].delta_ts_bytes[2]);
-        GF_add(tape.t_shares[2], tape.t_shares[2], temp);
 
         GF_from_bytes(temp, sign->proofs[rep].delta_c_bytes);
         GF_add(tape.c_share, tape.c_share, temp);
@@ -494,7 +470,6 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
       GF_copy(mult_chk.pt_share[party], tape.pt_share);
       GF_copy(mult_chk.x_shares[0][party], tape.t_shares[0]);
       GF_copy(mult_chk.x_shares[1][party], tape.t_shares[1]);
-      GF_copy(mult_chk.x_shares[2][party], tape.t_shares[2]);
       GF_copy(alpha_v_shares[0][party], tape.a_share);
       GF_copy(alpha_v_shares[1][party], tape.c_share);
     }
@@ -517,11 +492,6 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
                    (const GF *)mult_chk.x_shares[2], epsilons[2]);
     POLY_mul_add_N(alpha_v_shares[1], alpha_v_shares_hi[1],
                    (const GF *)mult_chk.z_shares[2], epsilons[2]);
-
-    POLY_mul_add_N(alpha_v_shares[0], alpha_v_shares_hi[0],
-                   (const GF *)mult_chk.x_shares[3], epsilons[3]);
-    POLY_mul_add_N(alpha_v_shares[1], alpha_v_shares_hi[1],
-                   (const GF *)mult_chk.z_shares[3], epsilons[3]);
 
     POLY_red_N(alpha_v_shares[0], (const GF *)alpha_v_shares_hi[0]);
     POLY_red_N(alpha_v_shares[1], (const GF *)alpha_v_shares_hi[1]);
