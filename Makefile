@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -O3 -march=native -fomit-frame-pointer
 
-VARIANTS = src/aimer128f src/aimer128s src/aimer192f src/aimer192s src/aimer256f src/aimer256s
+VARIANTS = src/aimer192f src/aimer192s src/aimer192f src/aimer192s src/aimer256f src/aimer256s
 
 ALL_TESTAIM2 = $(patsubst %, %/tests/test_aim2, $(VARIANTS))
 ALL_TESTSIGN = $(patsubst %, %/tests/test_sign, $(VARIANTS))

@@ -3,7 +3,8 @@
 #ifndef HASH_H
 #define HASH_H
 
-#include "params.h"
+#include "../src/aimer128/aimer128f/params.h"
+#include "../src/aimer128/aimer128s/params.h"
 #include "fips202.h"
 #include <stddef.h>
 #include <stdint.h>

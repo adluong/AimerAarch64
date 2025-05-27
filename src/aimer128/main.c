@@ -6,17 +6,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-// Include the appropriate header based on variant
-#ifdef AIMER128S
+// Include both variants' headers
 #include "aimer128s/api.h"
 #include "aimer128s/params.h"
-#elif AIMER128F
 #include "aimer128f/api.h"
 #include "aimer128f/params.h"
-#else
-#include "aimer128f/api.h"
-#include "aimer128f/params.h"
-#endif
 
 // Test configuration
 #define TEST_MESSAGES 5
@@ -29,6 +23,39 @@
 #define YELLOW "\033[0;33m"
 #define BLUE "\033[0;34m"
 #define RESET "\033[0m"
+
+// Function declarations for AIMER-128s
+extern int samsungsds_aimer128s_aarch64_crypto_sign_keypair(uint8_t *pk, uint8_t *sk);
+extern int samsungsds_aimer128s_aarch64_crypto_sign(uint8_t *sm, size_t *smlen,
+        const uint8_t *m, size_t mlen, const uint8_t *sk);
+extern int samsungsds_aimer128s_aarch64_crypto_sign_signature(uint8_t *sig, size_t *siglen,
+        const uint8_t *m, size_t mlen, const uint8_t *sk);
+extern int samsungsds_aimer128s_aarch64_crypto_sign_verify(const uint8_t *sig, size_t siglen,
+        const uint8_t *m, size_t mlen, const uint8_t *pk);
+extern int samsungsds_aimer128s_aarch64_crypto_sign_open(uint8_t *m, size_t *mlen,
+        const uint8_t *sm, size_t smlen, const uint8_t *pk);
+
+// Function declarations for AIMER-128f
+extern int samsungsds_aimer128f_aarch64_crypto_sign_keypair(uint8_t *pk, uint8_t *sk);
+extern int samsungsds_aimer128f_aarch64_crypto_sign(uint8_t *sm, size_t *smlen,
+        const uint8_t *m, size_t mlen, const uint8_t *sk);
+extern int samsungsds_aimer128f_aarch64_crypto_sign_signature(uint8_t *sig, size_t *siglen,
+        const uint8_t *m, size_t mlen, const uint8_t *sk);
+extern int samsungsds_aimer128f_aarch64_crypto_sign_verify(const uint8_t *sig, size_t siglen,
+        const uint8_t *m, size_t mlen, const uint8_t *pk);
+extern int samsungsds_aimer128f_aarch64_crypto_sign_open(uint8_t *m, size_t *mlen,
+        const uint8_t *sm, size_t smlen, const uint8_t *pk);
+
+// Test results structure
+typedef struct {
+    int keypair_success;
+    int sign_success;
+    int verify_success;
+    int tamper_detection;
+    double avg_keypair_time;
+    double avg_sign_time;
+    double avg_verify_time;
+} test_results_t;
 
 // Function to get current time in microseconds
 double get_time() {
@@ -47,67 +74,251 @@ void print_hex(const char* label, const uint8_t* data, size_t len) {
     printf("\n");
 }
 
-// Test a single message
-int test_message(const uint8_t* pk, const uint8_t* sk, size_t msg_size) {
-    uint8_t* msg = malloc(msg_size);
-    uint8_t* sm = malloc(msg_size + CRYPTO_BYTES);
-    uint8_t* msg2 = malloc(msg_size);
-    size_t smlen, mlen2;
-    int ret;
-    int success = 1;
+// Test AIMER-128s
+test_results_t test_aimer128s() {
+    test_results_t results = {0};
     
-    // Generate random message
-    for (size_t i = 0; i < msg_size; i++) {
-        msg[i] = rand() & 0xFF;
+    printf("\n%s========== Testing AIMER-128s ==========%s\n", BLUE, RESET);
+    printf("Algorithm: aimer128s\n");
+    printf("Public key size: %d bytes\n", CRYPTO_PUBLICKEYBYTES);
+    printf("Secret key size: %d bytes\n", CRYPTO_SECRETKEYBYTES);
+    printf("Signature size: %d bytes\n", 4160);  // AIMER-128s signature size
+    
+    uint8_t pk[CRYPTO_PUBLICKEYBYTES];
+    uint8_t sk[CRYPTO_SECRETKEYBYTES];
+    
+    // Test key generation
+    printf("\n%sTesting key generation...%s\n", YELLOW, RESET);
+    double keypair_time = 0;
+    
+    for (int i = 0; i < TIMING_ITERATIONS; i++) {
+        double start = get_time();
+        int ret = samsungsds_aimer128s_aarch64_crypto_sign_keypair(pk, sk);
+        double end = get_time();
+        keypair_time += (end - start);
+        
+        if (ret != 0) {
+            printf("%s[FAIL]%s Key generation failed\n", RED, RESET);
+            return results;
+        }
     }
     
-    printf("\nTesting message size: %zu bytes\n", msg_size);
-    print_hex("Message", msg, msg_size);
+    results.keypair_success = 1;
+    results.avg_keypair_time = keypair_time / TIMING_ITERATIONS;
+    printf("%s[PASS]%s Key generation successful\n", GREEN, RESET);
+    printf("Average time: %.2f μs\n", results.avg_keypair_time);
     
-    // Sign message
-    ret = crypto_sign(sm, &smlen, msg, msg_size, sk);
-    if (ret != 0 || smlen != msg_size + CRYPTO_BYTES) {
-        printf("%s[FAIL]%s Signing failed\n", RED, RESET);
-        success = 0;
-        goto cleanup;
+    // Test signing and verification
+    int msg_sizes[] = MESSAGE_SIZES;
+    printf("\n%sTesting signing and verification...%s\n", YELLOW, RESET);
+    
+    results.sign_success = 1;
+    results.verify_success = 1;
+    results.tamper_detection = 1;
+    
+    double sign_time = 0;
+    double verify_time = 0;
+    
+    for (int i = 0; i < TEST_MESSAGES; i++) {
+        size_t msg_size = msg_sizes[i];
+        uint8_t* msg = malloc(msg_size);
+        uint8_t* sm = malloc(msg_size + 4160);
+        uint8_t* msg2 = malloc(msg_size);
+        size_t smlen, mlen2;
+        
+        // Generate random message
+        for (size_t j = 0; j < msg_size; j++) {
+            msg[j] = rand() & 0xFF;
+        }
+        
+        printf("\nMessage %d (size: %zu bytes)\n", i+1, msg_size);
+        
+        // Test signing
+        double start = get_time();
+        int ret = samsungsds_aimer128s_aarch64_crypto_sign(sm, &smlen, msg, msg_size, sk);
+        double end = get_time();
+        sign_time += (end - start);
+        
+        if (ret != 0 || smlen != msg_size + 4160) {
+            printf("%s[FAIL]%s Signing failed\n", RED, RESET);
+            results.sign_success = 0;
+            free(msg); free(sm); free(msg2);
+            continue;
+        }
+        
+        // Test verification
+        start = get_time();
+        ret = samsungsds_aimer128s_aarch64_crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
+        end = get_time();
+        verify_time += (end - start);
+        
+        if (ret != 0 || mlen2 != msg_size || memcmp(msg, msg2, msg_size) != 0) {
+            printf("%s[FAIL]%s Verification failed\n", RED, RESET);
+            results.verify_success = 0;
+        } else {
+            printf("%s[PASS]%s Message signed and verified correctly\n", GREEN, RESET);
+        }
+        
+        // Test tamper detection
+        sm[msg_size/2] ^= 0x01;
+        ret = samsungsds_aimer128s_aarch64_crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
+        if (ret == 0) {
+            printf("%s[FAIL]%s Message tampering not detected\n", RED, RESET);
+            results.tamper_detection = 0;
+        }
+        sm[msg_size/2] ^= 0x01; // Restore
+        
+        // Tamper with signature
+        sm[msg_size + 2080] ^= 0x01;  // Middle of signature
+        ret = samsungsds_aimer128s_aarch64_crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
+        if (ret == 0) {
+            printf("%s[FAIL]%s Signature tampering not detected\n", RED, RESET);
+            results.tamper_detection = 0;
+        }
+        
+        free(msg); free(sm); free(msg2);
     }
-    printf("%s[PASS]%s Message signed successfully\n", GREEN, RESET);
     
-    // Verify message
-    ret = crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
-    if (ret != 0 || mlen2 != msg_size || memcmp(msg, msg2, msg_size) != 0) {
-        printf("%s[FAIL]%s Verification failed\n", RED, RESET);
-        success = 0;
-        goto cleanup;
+    results.avg_sign_time = sign_time / TEST_MESSAGES;
+    results.avg_verify_time = verify_time / TEST_MESSAGES;
+    
+    printf("\n%sPerformance Summary:%s\n", YELLOW, RESET);
+    printf("Average signing time: %.2f μs\n", results.avg_sign_time);
+    printf("Average verification time: %.2f μs\n", results.avg_verify_time);
+    
+    return results;
+}
+
+// Test AIMER-128f
+test_results_t test_aimer128f() {
+    test_results_t results = {0};
+    
+    printf("\n%s========== Testing AIMER-128f ==========%s\n", BLUE, RESET);
+    printf("Algorithm: aimer128f\n");
+    printf("Public key size: %d bytes\n", CRYPTO_PUBLICKEYBYTES);
+    printf("Secret key size: %d bytes\n", CRYPTO_SECRETKEYBYTES);
+    printf("Signature size: %d bytes\n", 5888);  // AIMER-128f signature size
+    
+    uint8_t pk[CRYPTO_PUBLICKEYBYTES];
+    uint8_t sk[CRYPTO_SECRETKEYBYTES];
+    
+    // Test key generation
+    printf("\n%sTesting key generation...%s\n", YELLOW, RESET);
+    double keypair_time = 0;
+    
+    for (int i = 0; i < TIMING_ITERATIONS; i++) {
+        double start = get_time();
+        int ret = samsungsds_aimer128f_aarch64_crypto_sign_keypair(pk, sk);
+        double end = get_time();
+        keypair_time += (end - start);
+        
+        if (ret != 0) {
+            printf("%s[FAIL]%s Key generation failed\n", RED, RESET);
+            return results;
+        }
     }
-    printf("%s[PASS]%s Message verified successfully\n", GREEN, RESET);
     
-    // Test tamper detection - modify message
-    sm[msg_size/2] ^= 0x01;
-    ret = crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
-    if (ret == 0) {
-        printf("%s[FAIL]%s Message tampering not detected\n", RED, RESET);
-        success = 0;
-    } else {
-        printf("%s[PASS]%s Message tampering detected\n", GREEN, RESET);
+    results.keypair_success = 1;
+    results.avg_keypair_time = keypair_time / TIMING_ITERATIONS;
+    printf("%s[PASS]%s Key generation successful\n", GREEN, RESET);
+    printf("Average time: %.2f μs\n", results.avg_keypair_time);
+    
+    // Test signing and verification
+    int msg_sizes[] = MESSAGE_SIZES;
+    printf("\n%sTesting signing and verification...%s\n", YELLOW, RESET);
+    
+    results.sign_success = 1;
+    results.verify_success = 1;
+    results.tamper_detection = 1;
+    
+    double sign_time = 0;
+    double verify_time = 0;
+    
+    for (int i = 0; i < TEST_MESSAGES; i++) {
+        size_t msg_size = msg_sizes[i];
+        uint8_t* msg = malloc(msg_size);
+        uint8_t* sm = malloc(msg_size + 5888);
+        uint8_t* msg2 = malloc(msg_size);
+        size_t smlen, mlen2;
+        
+        // Generate random message
+        for (size_t j = 0; j < msg_size; j++) {
+            msg[j] = rand() & 0xFF;
+        }
+        
+        printf("\nMessage %d (size: %zu bytes)\n", i+1, msg_size);
+        
+        // Test signing
+        double start = get_time();
+        int ret = samsungsds_aimer128f_aarch64_crypto_sign(sm, &smlen, msg, msg_size, sk);
+        double end = get_time();
+        sign_time += (end - start);
+        
+        if (ret != 0 || smlen != msg_size + 5888) {
+            printf("%s[FAIL]%s Signing failed\n", RED, RESET);
+            results.sign_success = 0;
+            free(msg); free(sm); free(msg2);
+            continue;
+        }
+        
+        // Test verification
+        start = get_time();
+        ret = samsungsds_aimer128f_aarch64_crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
+        end = get_time();
+        verify_time += (end - start);
+        
+        if (ret != 0 || mlen2 != msg_size || memcmp(msg, msg2, msg_size) != 0) {
+            printf("%s[FAIL]%s Verification failed\n", RED, RESET);
+            results.verify_success = 0;
+        } else {
+            printf("%s[PASS]%s Message signed and verified correctly\n", GREEN, RESET);
+        }
+        
+        // Test tamper detection
+        sm[msg_size/2] ^= 0x01;
+        ret = samsungsds_aimer128f_aarch64_crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
+        if (ret == 0) {
+            printf("%s[FAIL]%s Message tampering not detected\n", RED, RESET);
+            results.tamper_detection = 0;
+        }
+        sm[msg_size/2] ^= 0x01; // Restore
+        
+        // Tamper with signature
+        sm[msg_size + 2944] ^= 0x01;  // Middle of signature
+        ret = samsungsds_aimer128f_aarch64_crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
+        if (ret == 0) {
+            printf("%s[FAIL]%s Signature tampering not detected\n", RED, RESET);
+            results.tamper_detection = 0;
+        }
+        
+        free(msg); free(sm); free(msg2);
     }
-    sm[msg_size/2] ^= 0x01; // Restore
     
-    // Test tamper detection - modify signature
-    sm[msg_size + CRYPTO_BYTES/2] ^= 0x01;
-    ret = crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
-    if (ret == 0) {
-        printf("%s[FAIL]%s Signature tampering not detected\n", RED, RESET);
-        success = 0;
-    } else {
-        printf("%s[PASS]%s Signature tampering detected\n", GREEN, RESET);
-    }
+    results.avg_sign_time = sign_time / TEST_MESSAGES;
+    results.avg_verify_time = verify_time / TEST_MESSAGES;
     
-cleanup:
-    free(msg);
-    free(sm);
-    free(msg2);
-    return success;
+    printf("\n%sPerformance Summary:%s\n", YELLOW, RESET);
+    printf("Average signing time: %.2f μs\n", results.avg_sign_time);
+    printf("Average verification time: %.2f μs\n", results.avg_verify_time);
+    
+    return results;
+}
+
+// Print comparison results
+void print_comparison(test_results_t res_128s, test_results_t res_128f) {
+    printf("\n%s========== Performance Comparison ==========%s\n", BLUE, RESET);
+    printf("                    AIMER-128s    AIMER-128f\n");
+    printf("Key generation:     %.2f μs     %.2f μs\n", 
+           res_128s.avg_keypair_time, res_128f.avg_keypair_time);
+    printf("Signing:            %.2f μs     %.2f μs\n", 
+           res_128s.avg_sign_time, res_128f.avg_sign_time);
+    printf("Verification:       %.2f μs     %.2f μs\n", 
+           res_128s.avg_verify_time, res_128f.avg_verify_time);
+    
+    printf("\nSpeedup factors:\n");
+    printf("Verification: AIMER-128f is %.2fx %s than AIMER-128s\n",
+           res_128s.avg_verify_time / res_128f.avg_verify_time,
+           res_128s.avg_verify_time > res_128f.avg_verify_time ? "faster" : "slower");
 }
 
 int main() {
@@ -118,127 +329,34 @@ int main() {
     // Initialize random seed
     srand(time(NULL));
     
-    // Print variant info
-#ifdef AIMER128S
-    printf("\nTesting AIMER-128s variant\n");
-#elif AIMER128F
-    printf("\nTesting AIMER-128f variant\n");
-#else
-    printf("\nTesting AIMER-%s variant\n", CRYPTO_ALGNAME);
-#endif
+    // Test both variants
+    test_results_t res_128s = test_aimer128s();
+    test_results_t res_128f = test_aimer128f();
     
-    printf("Algorithm: %s\n", CRYPTO_ALGNAME);
-    printf("Public key size: %d bytes\n", CRYPTO_PUBLICKEYBYTES);
-    printf("Secret key size: %d bytes\n", CRYPTO_SECRETKEYBYTES);
-    printf("Signature size: %d bytes\n", CRYPTO_BYTES);
+    // Print comparison
+    print_comparison(res_128s, res_128f);
     
-    uint8_t pk[CRYPTO_PUBLICKEYBYTES];
-    uint8_t sk[CRYPTO_SECRETKEYBYTES];
-    
-    // Test key generation
-    printf("\n%sTesting key generation...%s\n", YELLOW, RESET);
-    double total_keypair_time = 0;
-    
-    for (int i = 0; i < TIMING_ITERATIONS; i++) {
-        double start = get_time();
-        int ret = crypto_sign_keypair(pk, sk);
-        double end = get_time();
-        total_keypair_time += (end - start);
-        
-        if (ret != 0) {
-            printf("%s[FAIL]%s Key generation failed\n", RED, RESET);
-            return 1;
-        }
-    }
-    
-    printf("%s[PASS]%s Key generation successful\n", GREEN, RESET);
-    printf("Average time: %.2f μs\n", total_keypair_time / TIMING_ITERATIONS);
-    
-    // Print sample keys
-    print_hex("Public key", pk, CRYPTO_PUBLICKEYBYTES);
-    print_hex("Secret key", sk, CRYPTO_SECRETKEYBYTES);
-    
-    // Test signing and verification with different message sizes
-    int msg_sizes[] = MESSAGE_SIZES;
-    printf("\n%sTesting signing and verification...%s\n", YELLOW, RESET);
-    
-    int all_passed = 1;
-    double total_sign_time = 0;
-    double total_verify_time = 0;
-    
-    for (int i = 0; i < TEST_MESSAGES; i++) {
-        size_t msg_size = msg_sizes[i];
-        uint8_t* msg = malloc(msg_size);
-        uint8_t* sm = malloc(msg_size + CRYPTO_BYTES);
-        uint8_t* msg2 = malloc(msg_size);
-        size_t smlen, mlen2;
-        
-        // Generate random message
-        for (size_t j = 0; j < msg_size; j++) {
-            msg[j] = rand() & 0xFF;
-        }
-        
-        // Time signing
-        double start = get_time();
-        crypto_sign(sm, &smlen, msg, msg_size, sk);
-        double end = get_time();
-        total_sign_time += (end - start);
-        
-        // Time verification
-        start = get_time();
-        crypto_sign_open(msg2, &mlen2, sm, smlen, pk);
-        end = get_time();
-        total_verify_time += (end - start);
-        
-        // Run tests
-        if (!test_message(pk, sk, msg_size)) {
-            all_passed = 0;
-        }
-        
-        free(msg);
-        free(sm);
-        free(msg2);
-    }
-    
-    // Performance summary
-    printf("\n%sPerformance Summary:%s\n", YELLOW, RESET);
-    printf("Average signing time: %.2f μs\n", total_sign_time / TEST_MESSAGES);
-    printf("Average verification time: %.2f μs\n", total_verify_time / TEST_MESSAGES);
-    
-    // Test with signature API
-    printf("\n%sTesting signature-only API...%s\n", YELLOW, RESET);
-    size_t test_msg_len = 59;
-    uint8_t test_msg[59];
-    uint8_t sig[CRYPTO_BYTES];
-    size_t siglen;
-    
-    for (size_t i = 0; i < test_msg_len; i++) {
-        test_msg[i] = i & 0xFF;
-    }
-    
-    int ret = crypto_sign_signature(sig, &siglen, test_msg, test_msg_len, sk);
-    if (ret != 0 || siglen != CRYPTO_BYTES) {
-        printf("%s[FAIL]%s Signature generation failed\n", RED, RESET);
-        all_passed = 0;
-    } else {
-        printf("%s[PASS]%s Signature generated successfully\n", GREEN, RESET);
-        
-        ret = crypto_sign_verify(sig, siglen, test_msg, test_msg_len, pk);
-        if (ret != 0) {
-            printf("%s[FAIL]%s Signature verification failed\n", RED, RESET);
-            all_passed = 0;
-        } else {
-            printf("%s[PASS]%s Signature verified successfully\n", GREEN, RESET);
-        }
-    }
-    
-    // Final summary
+    // Final test summary
     printf("\n%s========== Test Summary ==========%s\n", BLUE, RESET);
-    if (all_passed) {
+    int all_passed = 1;
+    
+    printf("AIMER-128s: ");
+    if (res_128s.keypair_success && res_128s.sign_success && 
+        res_128s.verify_success && res_128s.tamper_detection) {
         printf("%s[ALL TESTS PASSED]%s\n", GREEN, RESET);
-        return 0;
     } else {
         printf("%s[SOME TESTS FAILED]%s\n", RED, RESET);
-        return 1;
+        all_passed = 0;
     }
+    
+    printf("AIMER-128f: ");
+    if (res_128f.keypair_success && res_128f.sign_success && 
+        res_128f.verify_success && res_128f.tamper_detection) {
+        printf("%s[ALL TESTS PASSED]%s\n", GREEN, RESET);
+    } else {
+        printf("%s[SOME TESTS FAILED]%s\n", RED, RESET);
+        all_passed = 0;
+    }
+    
+    return all_passed ? 0 : 1;
 }

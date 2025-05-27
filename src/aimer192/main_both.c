@@ -16,17 +16,17 @@
 // Fixed sizes for both variants
 #define PK_SIZE 32
 #define SK_SIZE 48
-#define SIG_SIZE_128S 4160
-#define SIG_SIZE_128F 5888
+#define SIG_SIZE_192S 4160
+#define SIG_SIZE_192F 5888
 
 // Test both variants by compiling twice with different params
-int test_variant(const char* variant, int is_128f) {
+int test_variant(const char* variant, int is_192f) {
     printf("\n%s========== Testing AIMER-%s ==========%s\n", 
            BLUE, variant, RESET);
     
     // For demonstration - in real implementation, you would link
     // both variants separately
-    int sig_size = is_128f ? SIG_SIZE_128F : SIG_SIZE_128S;
+    int sig_size = is_192f ? SIG_SIZE_192F : SIG_SIZE_192S;
     
     printf("Public key size: %d bytes\n", PK_SIZE);
     printf("Secret key size: %d bytes\n", SK_SIZE);
@@ -47,15 +47,15 @@ int main() {
     printf("%s╚══════════════════════════════════════════╝%s\n", BLUE, RESET);
     
     // Test both variants
-    test_variant("128s", 0);
-    test_variant("128f", 1);
+    test_variant("192s", 0);
+    test_variant("192f", 1);
     
     // Comparison
     printf("\n%s========== Comparison ==========%s\n", BLUE, RESET);
-    printf("AIMER-128s: Optimized for smaller signatures (%d bytes)\n", SIG_SIZE_128S);
-    printf("AIMER-128f: Optimized for faster verification (%d bytes)\n", SIG_SIZE_128F);
+    printf("AIMER-192s: Optimized for smaller signatures (%d bytes)\n", SIG_SIZE_192S);
+    printf("AIMER-192f: Optimized for faster verification (%d bytes)\n", SIG_SIZE_192F);
     printf("Trade-off: %.1fx larger signatures for faster verification\n", 
-           (float)SIG_SIZE_128F / SIG_SIZE_128S);
+           (float)SIG_SIZE_192F / SIG_SIZE_192S);
     
     return 0;
 }

@@ -7,20 +7,20 @@
 #include <time.h>
 
 // Include the appropriate header based on variant
-#ifdef AIMER192S
-#include "aimer192s/api.h"
-#include "aimer192s/params.h"
-#elif AIMER192F
-#include "aimer192f/api.h"
-#include "aimer192f/params.h"
+#ifdef AIMER128S
+#include "aimer128s/api.h"
+#include "aimer128s/params.h"
+#elif AIMER128F
+#include "aimer128f/api.h"
+#include "aimer128f/params.h"
 #else
-#include "aimer192f/api.h"
-#include "aimer192f/params.h"
+#include "aimer128f/api.h"
+#include "aimer128f/params.h"
 #endif
 
 // Test configuration
 #define TEST_MESSAGES 5
-#define MESSAGE_SIZES {32, 59, 192, 256, 1024}
+#define MESSAGE_SIZES {32, 59, 128, 256, 1024}
 #define TIMING_ITERATIONS 10
 
 // Color codes for output
@@ -119,10 +119,10 @@ int main() {
     srand(time(NULL));
     
     // Print variant info
-#ifdef AIMER192S
-    printf("\nTesting AIMER-192s variant\n");
-#elif AIMER192F
-    printf("\nTesting AIMER-192f variant\n");
+#ifdef AIMER128S
+    printf("\nTesting AIMER-128s variant\n");
+#elif AIMER128F
+    printf("\nTesting AIMER-128f variant\n");
 #else
     printf("\nTesting AIMER-%s variant\n", CRYPTO_ALGNAME);
 #endif

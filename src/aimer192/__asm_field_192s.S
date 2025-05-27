@@ -96,7 +96,7 @@ _samsungsds_aimer192s_aarch64_GF_mul_N:
   MOVI   v30.16b, #0x87
   USHR   v30.2d,  v30.2d,  #56
 
-  MOV    x3, #128
+  MOV    x3, #8
 Loop_GF_mul_N:
   LD1    {v0.1d,  v1.1d,  v2.1d},  [x1], #24
   LD1    {v16.1d, v17.1d, v18.1d}, [x1], #24
@@ -155,7 +155,7 @@ _samsungsds_aimer192s_aarch64_GF_mul_add_N:
 
   MOV    x4, x0
 
-  MOV    x3, #128
+  MOV    x3, #8
 Loop_GF_mul_add_N:
   LD1    {v0.1d,  v1.1d,  v2.1d},  [x1], #24
   LD1    {v16.1d, v17.1d, v18.1d}, [x1], #24
@@ -216,7 +216,7 @@ _samsungsds_aimer192s_aarch64_GF_sqr_N:
   MOVI   v30.16b, #0x87
   USHR   v30.2d,  v30.2d,  #56
 
-  MOV    x2, #128
+  MOV    x2, #8
 Loop_GF_sqr_N:
   LD1    {v0.1d, v1.1d, v2.1d}, [x1], #24
   LD1    {v3.1d, v4.1d, v5.1d}, [x1], #24
@@ -254,7 +254,7 @@ _samsungsds_aimer192s_aarch64_POLY_mul_add_N:
 
   MOV    x4, x0
 
-  MOV    x3, #128
+  MOV    x3, #8
 Loop_POLY_mul_add_N:
   LD1    {v0.1d,  v1.1d,  v2.1d},  [x1], #24
   LD1    {v16.1d, v17.1d, v18.1d}, [x1], #24
@@ -290,7 +290,7 @@ _samsungsds_aimer192s_aarch64_POLY_red_N:
   MOVI   v31.16b, #0x87
   USHR   v31.2d,  v31.2d,  #56
 
-  MOV    x2, #64
+  MOV    x2, #4
 Loop_POLY_red_N:
   LD1    {v0.2d,  v1.2d,  v2.2d},  [x1], #48
   LD1    {v3.2d,  v4.2d,  v5.2d},  [x1], #48
@@ -318,3 +318,4 @@ Loop_POLY_red_N:
   CBNZ   x2, Loop_POLY_red_N
 
   RET
+

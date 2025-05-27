@@ -1,28 +1,32 @@
 # SPDX-License-Identifier: MIT
 
 CC = gcc
-CFLAGS = -O3 -Wall -Wextra -march=native -fomit-frame-pointer -I../../common
+AR = ar
+CFLAGS = -O3 -Wall -Wextra -march=native -fomit-frame-pointer -fPIC -I../../common -I.
 LDFLAGS = -lrt
 
-# Common source files (without assembly)
-COMMON_C_SRCS = aim2.c field.c hash.c sign.c \
-                ../../common/tree.c ../../common/aes.c \
-                ../../common/fips202.c ../../common/rng.c
+# Library name
+LIB_STATIC = libkucp_aimer.a
+LIB_SHARED = libkucp_aimer.so
 
-# Test executables
-TEST_AIM2 = test/test_aim2
-TEST_SIGN = test/test_sign
-TEST_SPEED = test/test_speed
-TEST_128S = test_aimer128s
-TEST_128F = test_aimer128f
+# Object files for the library
+LIB_OBJS = kucp_aimer_wrapper.o \
+           aim2_128s.o aim2_128f.o \
+           sign_128s.o sign_128f.o \
+           field_128s.o field_128f.o \
+           hash_128s.o hash_128f.o \
+           tree_128s.o tree_128f.o \
+           __asm_field_128s.o __asm_field_128f.o \
+           aes.o fips202.o rng.o
 
-# NIST KAT generator
-KAT_128S = PQCgenKAT_sign_aimer128s
-KAT_128F = PQCgenKAT_sign_aimer128f
+# Test program
+TEST_PROG = test_kucp_aimer
 
-.PHONY: all clean test test_all
+.PHONY: all clean test lib
 
-all: $(TEST_128S) $(TEST_128F)
+all: lib $(TEST_PROG)
+
+lib: $(LIB_STATIC) $(LIB_SHARED)
 
 # Make the preprocessing script executable
 preprocess_asm.sh:
@@ -35,55 +39,103 @@ __asm_field_128s.S: __asm_field.S preprocess_asm.sh
 __asm_field_128f.S: __asm_field.S preprocess_asm.sh
 	./preprocess_asm.sh 128f $@
 
-# Build AIMER-128s test
-$(TEST_128S): main.c $(COMMON_C_SRCS) __asm_field_128s.S
-	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s $^ -o $@ $(LDFLAGS)
+# Create variant-specific source files
+aim2_128s.c: aim2.c
+	echo '/* Auto-generated file for AIMER-128s */' > $@
+	echo '#define GF_exp_invmer_e_1_2 GF_exp_invmer_e_1_2_128s' >> $@
+	echo '#define GF_exp_mer_e_star GF_exp_mer_e_star_128s' >> $@
+	echo '#define generate_matrices_L_and_U generate_matrices_L_and_U_128s' >> $@
+	echo '#define generate_matrix_LU generate_matrix_LU_128s' >> $@
+	echo '#include "aim2.c"' >> $@
 
-# Build AIMER-128f test  
-$(TEST_128F): main.c $(COMMON_C_SRCS) __asm_field_128f.S
-	$(CC) $(CFLAGS) -DAIMER128F -Iaimer128f $^ -o $@ $(LDFLAGS)
+aim2_128f.c: aim2.c
+	echo '/* Auto-generated file for AIMER-128f */' > $@
+	echo '#define GF_exp_invmer_e_1_2 GF_exp_invmer_e_1_2_128f' >> $@
+	echo '#define GF_exp_mer_e_star GF_exp_mer_e_star_128f' >> $@
+	echo '#define generate_matrices_L_and_U generate_matrices_L_and_U_128f' >> $@
+	echo '#define generate_matrix_LU generate_matrix_LU_128f' >> $@
+	echo '#include "aim2.c"' >> $@
 
-# Build individual tests
-$(TEST_AIM2): test/test_aim2.c aim2.c field.c __asm_field_128s.S hash.c ../../common/fips202.c
-	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s $^ -o $@
+# Wrapper object
+kucp_aimer_wrapper.o: kucp_aimer_wrapper.c kucp_aimer_api.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TEST_SIGN): test/test_sign.c $(COMMON_C_SRCS) __asm_field_128s.S
-	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s $^ -o $@ $(LDFLAGS)
+# Build object files for each variant
+aim2_128s.o: aim2_128s.c aim2.h field.h params.h
+	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s -c $< -o $@
 
-$(TEST_SPEED): test/test_speed.c $(COMMON_C_SRCS) __asm_field_128s.S ../../common/speed_print.c ../../common/cpucycles.c
-	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s $^ -o $@ $(LDFLAGS)
+aim2_128f.o: aim2_128f.c aim2.h field.h params.h
+	$(CC) $(CFLAGS) -DAIMER128F -Iaimer128f -c $< -o $@
 
-# Build NIST KAT generators
-$(KAT_128S): ../../common/PQCgenKAT_sign.c $(COMMON_C_SRCS) __asm_field_128s.S
-	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s $^ -o $@
+sign_128s.o: sign.c sign.h aim2.h field.h hash.h params.h tree.h
+	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s -c $< -o $@
 
-$(KAT_128F): ../../common/PQCgenKAT_sign.c $(COMMON_C_SRCS) __asm_field_128f.S
-	$(CC) $(CFLAGS) -DAIMER128F -Iaimer128f $^ -o $@
+sign_128f.o: sign.c sign.h aim2.h field.h hash.h params.h tree.h
+	$(CC) $(CFLAGS) -DAIMER128F -Iaimer128f -c $< -o $@
 
-# Run tests
-test: $(TEST_128S) $(TEST_128F)
-	@echo "Testing AIMER-128s..."
-	./$(TEST_128S)
-	@echo "\nTesting AIMER-128f..."
-	./$(TEST_128F)
+field_128s.o: field.c field.h params.h
+	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s -c $< -o $@
 
-test_all: test $(TEST_AIM2) $(TEST_SIGN) $(TEST_SPEED)
-	@echo "\nRunning AIM2 test..."
-	./$(TEST_AIM2)
-	@echo "\nRunning signature test..."
-	./$(TEST_SIGN)
-	@echo "\nRunning speed test..."
-	./$(TEST_SPEED)
+field_128f.o: field.c field.h params.h
+	$(CC) $(CFLAGS) -DAIMER128F -Iaimer128f -c $< -o $@
 
-# Generate KAT files
-kat: $(KAT_128S) $(KAT_128F)
-	./$(KAT_128S)
-	./$(KAT_128F)
+hash_128s.o: hash.c hash.h params.h
+	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s -c $< -o $@
+
+hash_128f.o: hash.c hash.h params.h
+	$(CC) $(CFLAGS) -DAIMER128F -Iaimer128f -c $< -o $@
+
+# Tree functions use wrapper files
+tree_128s.o: tree_128s.c tree.h
+	$(CC) $(CFLAGS) -DAIMER128S -Iaimer128s -c $< -o $@
+
+tree_128f.o: tree_128f.c tree.h
+	$(CC) $(CFLAGS) -DAIMER128F -Iaimer128f -c $< -o $@
+
+__asm_field_128s.o: __asm_field_128s.S
+	$(CC) $(CFLAGS) -c $< -o $@
+
+__asm_field_128f.o: __asm_field_128f.S
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Common object files
+aes.o: ../../common/aes.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+fips202.o: ../../common/fips202.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+rng.o: ../../common/rng.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Build static library
+$(LIB_STATIC): $(LIB_OBJS)
+	$(AR) rcs $@ $^
+
+# Build shared library
+$(LIB_SHARED): $(LIB_OBJS)
+	$(CC) -shared -o $@ $^ $(LDFLAGS)
+
+# Build test program
+$(TEST_PROG): test_kucp_aimer.c $(LIB_STATIC)
+	$(CC) $(CFLAGS) $< -L. -lkucp_aimer -o $@ $(LDFLAGS)
+
+# Run test
+test: $(TEST_PROG)
+	LD_LIBRARY_PATH=. ./$(TEST_PROG)
+
+# Install library (optional)
+install: $(LIB_STATIC) $(LIB_SHARED) kucp_aimer_api.h
+	install -d $(DESTDIR)/usr/local/lib
+	install -d $(DESTDIR)/usr/local/include
+	install -m 644 $(LIB_STATIC) $(DESTDIR)/usr/local/lib/
+	install -m 755 $(LIB_SHARED) $(DESTDIR)/usr/local/lib/
+	install -m 644 kucp_aimer_api.h $(DESTDIR)/usr/local/include/
 
 # Clean build artifacts
 clean:
-	rm -f $(TEST_128S) $(TEST_128F) $(TEST_AIM2) $(TEST_SIGN) $(TEST_SPEED)
-	rm -f $(KAT_128S) $(KAT_128F)
+	rm -f $(LIB_STATIC) $(LIB_SHARED) $(TEST_PROG)
 	rm -f __asm_field_128s.S __asm_field_128f.S
-	rm -f *.o test/*.o
+	rm -f aim2_128s.c aim2_128f.c tree_128s.c tree_128f.c
+	rm -f *.o
 	rm -f PQCsignKAT_*.rsp PQCsignKAT_*.req
